@@ -34,6 +34,8 @@ public class RichConsentsAPIClient {
     private final HttpUrl baseUrl;
     private final ClientInfo clientInfo;
 
+    private static final String CONSENT_PATH = "rich-consents";
+
 
     RichConsentsAPIClient(RequestFactory requestFactory, Uri url, ClientInfo clientInfo) {
         this.requestFactory = requestFactory;
@@ -120,10 +122,39 @@ public class RichConsentsAPIClient {
                 .setHeader("MFA-DPoP", dpopAssertion);
     }
 
-    private HttpUrl buildBaseUrl(Uri url) {
-        HttpUrl httpUrl = HttpUrl.parse(url.toString());
-        return httpUrl.newBuilder()
-                .addPathSegments("rich-consents")
-                .build();
+    public static HttpUrl buildBaseUrl(Uri uri) {
+       if (uri == null) return null;
+
+       String host = uri.getHost();
+        if (host == null) return null;
+
+        if (host.startsWith("guardian.")) {
+            host = host.substring("guardian.".length());
+        } else if (host.contains(".guardian.")) {
+            host = host.replace(".guardian", "");
+        }
+
+        HttpUrl.Builder builder = new HttpUrl.Builder()
+                .scheme(uri.getScheme())
+                .host(host);
+
+        int port = uri.getPort();
+        if (port != -1){
+            builder.port(port);
+        }
+
+        for (String segment : uri.getPathSegments()) {
+            builder.addPathSegment(segment);
+        }
+
+        builder.addPathSegment(CONSENT_PATH);
+
+        for (String name : uri.getQueryParameterNames()) {
+            for (String value : uri.getQueryParameters(name)) {
+                builder.addQueryParameter(name, value);
+            }
+        }
+
+        return builder.build();
     }
 }
